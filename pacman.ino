@@ -14,7 +14,6 @@
 
 void setup()
 {
-  Serial.begin(115200);
   GD.begin();
   LOAD_ASSETS();
 
