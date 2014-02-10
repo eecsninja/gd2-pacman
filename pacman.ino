@@ -1,18 +1,28 @@
 #include <EEPROM.h>
 #include <SPI.h>
 #include <GD2.h>
+#include <DuinoCube.h>
 
 #define LANDSCAPE 0
 #define PORTRAIT  1
 
 #define ORIENTATION PORTRAIT
 
+#define USE_DUINOCUBE_GAMEPAD
+
 #include "pacman_assets.h"
 
 void setup()
 {
+  Serial.begin(115200);
   GD.begin();
   LOAD_ASSETS();
+
+#ifdef USE_DUINOCUBE_GAMEPAD
+  GD.__end();
+  DC.begin();
+  GD.resume();
+#endif  // USE_DUINOCUBE_GAMEPAD
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -52,6 +62,15 @@ static uint8_t key_read(uint8_t mask)
   uint8_t dir = 0;
   int THRESH = 25;
 
+#ifdef USE_DUINOCUBE_GAMEPAD
+  GD.__end();
+  GamepadState gamepad = DC.Gamepad.readGamepad();
+  GD.resume();
+  // TODO: Normalizing the axis values should be done in DuinoCube firmware.
+  ax = gamepad.y - UINT8_MAX / 2;
+  ay = -(gamepad.x - UINT8_MAX / 2);
+#endif  // USE_DUINOCUBE_GAMEPAD
+
   if (ax < -THRESH)
     dir |= KEY_LEFT;
   else if (THRESH < ax)
@@ -66,7 +85,11 @@ static uint8_t key_read(uint8_t mask)
   dir = ((dir & 7) << 1) | (dir >> 3);
 #endif
 
+#ifdef USE_DUINOCUBE_GAMEPAD
+  if (gamepad.buttons)
+#else
   if (GD.inputs.x != -32768)
+#endif  // USE_DUINOCUBE_GAMEPAD
     dir |= KEY_COIN | KEY_START;
 
   return mask & (dir);
